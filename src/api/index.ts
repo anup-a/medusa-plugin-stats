@@ -25,7 +25,11 @@ export default (rootDirectory, pluginOptions) => {
   router.get("/admin/stats", authenticate(), async (req: any, res) => {
     const statsService: StatsService = req.scope.resolve("statsService");
 
-    const { entity, start, end } = req.query as {
+    const {
+      entity = ["sales", "products", "orders", "customers"],
+      start,
+      end,
+    } = req.query as {
       entity: string[];
       start: string;
       end: string;
@@ -39,19 +43,19 @@ export default (rootDirectory, pluginOptions) => {
     const startDate = start ? new Date(start) : defaultStartDate;
     const endDate = end ? new Date(end) : defaultEndDate;
 
-    if (entity.includes("sales")) {
+    if (entity?.includes("sales")) {
       stats["sales"] = await statsService.fetchSalesStats({
         startDate,
         endDate,
       });
     }
-    if (entity.includes("products")) {
+    if (entity?.includes("products")) {
       stats["products"] = await statsService.fetchProductsStats({
         startDate,
         endDate,
       });
     }
-    if (entity.includes("orders")) {
+    if (entity?.includes("orders")) {
       stats["orders"] = await statsService.fetchOrdersStats(
         { startDate, endDate },
         "period"
