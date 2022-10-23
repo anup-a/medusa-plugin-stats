@@ -17,7 +17,7 @@ plugins: [
   `medusa-plugin-stats`
   ]
 ```
-3. GET /admin/stats with following params returns the statictics data
+3. GET `/admin/stats` with following params will return the statictics data
 
 Query params -> 
 ```js
