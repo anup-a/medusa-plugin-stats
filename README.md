@@ -41,9 +41,9 @@ Response ->
 
 ## Devlopment
 
-[] Refactor API to allow options to each resource type
+- [ ] Refactor API to allow options to each resource type
 
-[] Add mean & time series stats
+- [ ] Add mean & time series stats
 
-[] Improve sales stat to allow multiple currencies
+- [ ] Improve sales stat to allow multiple currencies
 
