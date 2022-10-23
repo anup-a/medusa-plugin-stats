@@ -4,8 +4,9 @@
 
 `medusa-plugin-stats` is MedusaJS plugin to retreive store statistics data.
 
+⚠️ Note - This plugin is under active development,and will introduce few changes in API.
 
-## Installation
+## Installation & Usage
 
 1. Run - `yarn add medusa-plugin-stats` or `npm install medusa-plugin-stats`
 
@@ -37,3 +38,11 @@ Response ->
   "orders": []
 }
 ```
+
+## Devlopment
+
+[] Refactor API to allow options to each resource type
+
+[] Add mean & time series stats
+
+[] Improve sales stat to allow multiple currencies
