@@ -18,10 +18,10 @@ plugins: [
   `medusa-plugin-stats`
   ]
 ```
-3. GET /admin/stats with following params returns the statictics data
+3. GET `/admin/stats` with following params will return the statictics data
 
 Query params -> 
-```json
+```js
 {
   entity: ["sales", "products", 'orders", 'customers'],
   start: "02/24/2022" // start date in MM/dd/yyyy format,
@@ -46,3 +46,4 @@ Response ->
 [] Add mean & time series stats
 
 [] Improve sales stat to allow multiple currencies
+
