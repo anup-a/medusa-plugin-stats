@@ -2,23 +2,23 @@ import { Router } from "express";
 import cors from "cors";
 import StatsService from "../services/stats";
 import authenticate from "@medusajs/medusa/dist/api/middlewares/authenticate";
-import subWeeks from "date-fns/subWeeks";
-import addDays from "date-fns/addDays";
+import { subWeeks } from "date-fns";
+import { addDays } from "date-fns";
 import { getConfigFile } from "medusa-core-utils";
 
-export default (rootDirectory, pluginOptions) => {
+export default (rootDirectory) => {
   const router = Router();
   const { configModule } = getConfigFile(rootDirectory, "medusa-config") as {
     configModule: { projectConfig: { admin_cors: string } };
   };
   const { projectConfig } = configModule;
-
   const corsOptions = {
     origin: projectConfig.admin_cors.split(","),
     credentials: true,
   };
 
-  router.use("/admin/stats", cors(corsOptions));
+  // TODO: fix this in development
+  // router.use("/admin/stats", cors(corsOptions));
 
   router.options("/admin/stats");
 
