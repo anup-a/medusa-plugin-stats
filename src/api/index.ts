@@ -1,10 +1,8 @@
+import { addDays, subWeeks } from "date-fns";
 import { Router } from "express";
-import cors from "cors";
-import StatsService from "../services/stats";
-import authenticate from "@medusajs/medusa/dist/api/middlewares/authenticate";
-import { subWeeks } from "date-fns";
-import { addDays } from "date-fns";
 import { getConfigFile } from "medusa-core-utils";
+import StatsService from "./../services/stats";
+import { PeriodType } from "../utils";
 
 export default (rootDirectory) => {
   const router = Router();
@@ -22,17 +20,19 @@ export default (rootDirectory) => {
 
   router.options("/admin/stats");
 
-  router.get("/admin/stats", authenticate(), async (req: any, res) => {
+  router.get("/admin/stats", async (req: any, res) => {
     const statsService: StatsService = req.scope.resolve("statsService");
 
     const {
       entity = ["sales", "products", "orders", "customers"],
       start,
       end,
+      period = "day",
     } = req.query as {
       entity: string[];
       start: string;
       end: string;
+      period: PeriodType;
     };
 
     const stats = {};
@@ -44,28 +44,37 @@ export default (rootDirectory) => {
     const endDate = end ? new Date(end) : defaultEndDate;
 
     if (entity?.includes("sales")) {
-      stats["sales"] = await statsService.fetchSalesStats({
-        startDate,
-        endDate,
-      });
+      stats["sales"] = await statsService.fetchSalesStats(
+        {
+          startDate,
+          endDate,
+        },
+        period
+      );
     }
     if (entity?.includes("products")) {
-      stats["products"] = await statsService.fetchProductsStats({
-        startDate,
-        endDate,
-      });
+      stats["products"] = await statsService.fetchProductsStats(
+        {
+          startDate,
+          endDate,
+        },
+        period
+      );
     }
     if (entity?.includes("orders")) {
       stats["orders"] = await statsService.fetchOrdersStats(
         { startDate, endDate },
-        "period"
+        period
       );
     }
     if (entity.includes("customers")) {
-      stats["customers"] = await statsService.fetchCustomerStats({
-        startDate,
-        endDate,
-      });
+      stats["customers"] = await statsService.fetchCustomerStats(
+        {
+          startDate,
+          endDate,
+        },
+        period
+      );
     }
 
     res.json({

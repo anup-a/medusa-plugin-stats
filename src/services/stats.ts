@@ -1,17 +1,21 @@
-import { OrderService, OrderStatus, ProductService } from "@medusajs/medusa";
-import { OrderRepository } from "@medusajs/medusa/dist/repositories/order";
 import {
-  Between,
-  EntityManager,
-  LessThan,
-  LessThanOrEqual,
-  MoreThan,
-  MoreThanOrEqual,
-} from "typeorm";
-import { format } from "date-fns";
-import { ProductRepository } from "@medusajs/medusa/dist/repositories/product";
+  OrderService,
+  OrderStatus,
+  PaymentStatus,
+  ProductService,
+} from "@medusajs/medusa";
 import { CustomerRepository } from "@medusajs/medusa/dist/repositories/customer";
+import { OrderRepository } from "@medusajs/medusa/dist/repositories/order";
+import { ProductRepository } from "@medusajs/medusa/dist/repositories/product";
 import { BaseService } from "medusa-interfaces";
+import { EntityManager } from "typeorm";
+import {
+  BetweenDate,
+  EDateType,
+  getNumericValue,
+  PeriodType,
+  transformTimeSeries,
+} from "../utils";
 
 type InjectedDependencies = {
   manager: EntityManager;
@@ -22,25 +26,9 @@ type InjectedDependencies = {
   customerRepository: typeof CustomerRepository;
 };
 
-enum EDateType {
-  Date = "yyyy-MM-dd",
-  Datetime = "yyyy-MM-dd HH:MM:ss",
-}
-
-const MoreThanDate = (date: Date, type: EDateType) =>
-  MoreThan(format(date, type));
-const MoreThanOrEqualDate = (date: Date, type: EDateType) =>
-  MoreThanOrEqual(format(date, type));
-const LessThanDate = (date: Date, type: EDateType) =>
-  LessThan(format(date, type));
-const LessThanOrEqualDate = (date: Date, type: EDateType) =>
-  LessThanOrEqual(format(date, type));
-const BetweenDate = (from: Date, end: Date, type: EDateType) =>
-  Between(format(from, type), format(end, type));
-
 class StatsService extends BaseService {
-  public declare manager_: EntityManager;
-  public declare transactionManager_: EntityManager;
+  public manager_: EntityManager;
+  public transactionManager_: EntityManager;
   protected orderRepository_: typeof OrderRepository;
   protected orderService_: OrderService;
   protected productService_: ProductService;
@@ -70,17 +58,18 @@ class StatsService extends BaseService {
       startDate: Date;
       endDate: Date;
     },
-    groupBy: "status" | "period"
+    period: PeriodType
   ): Promise<any> {
     const orderRepo = this.manager_.getCustomRepository(this.orderRepository_);
 
-    const groupBy_ =
-      groupBy === "status" ? "order.status" : "DATE(order.created_at)";
+    const groupBy_ = `date_trunc('${period}', order.created_at)`;
 
-    const ordersCount = orderRepo
+    const ordersCount = await orderRepo
       .createQueryBuilder("order")
-      .select(`${groupBy_}`)
-      .addSelect(`COUNT(order.id) as count`)
+      .select(`${groupBy_} as timestamp`)
+      .addSelect(
+        `COUNT(order.id) as value, (select COUNT(*) from "order") as total`
+      )
       .groupBy(`${groupBy_}`)
       .where({
         created_at: BetweenDate(
@@ -91,97 +80,137 @@ class StatsService extends BaseService {
       })
       .getRawMany();
 
-    return ordersCount;
+    const metrics = { total: ordersCount.length ? ordersCount[0].total : 0 };
+    const result = { ...transformTimeSeries(ordersCount), metrics, period };
+    return result;
   }
 
   // total sales
-  async fetchSalesStats(range: {
-    startDate: Date;
-    endDate: Date;
-  }): Promise<any> {
-    const orders = await this.orderService_.list(
-      {
+  async fetchSalesStats(
+    range: {
+      startDate: Date;
+      endDate: Date;
+    },
+    period: PeriodType
+  ): Promise<any> {
+    const orderRepo = this.manager_.getCustomRepository(this.orderRepository_);
+
+    const groupBy_ = `date_trunc('${period}', order.created_at)`;
+
+    let ordersCount = await orderRepo
+      .createQueryBuilder("order")
+      .select(`${groupBy_} as timestamp`)
+      .addSelect(
+        `SUM(order_items.unit_price * order_items.fulfilled_quantity) as value`
+      )
+      .innerJoin(
+        "order.items",
+        "order_items",
+        "order_items.order_id = order.id"
+      )
+      .groupBy(`${groupBy_}`)
+      .where({
         created_at: BetweenDate(
           range.startDate,
           range.endDate,
           EDateType.Datetime
         ),
+        canceled_at: null,
+        payment_status: PaymentStatus.CAPTURED,
         status: OrderStatus.COMPLETED,
-      },
-      {
-        select: [
-          "id",
-          "currency",
-          "total",
-          "discount_total",
-          "status",
-          "created_at",
-        ],
-        take: undefined,
-      }
-    );
-    const ordersSalesMap: Object = {};
+      })
+      .getRawMany();
 
-    orders.reduce((acc, order) => {
-      if (!order.created_at) return;
-      const created_at = order.created_at;
-      const date = format(created_at, "MM/dd/yyyy");
-      if (ordersSalesMap[date])
-        return (ordersSalesMap[date] += order.total / 100);
-      return (ordersSalesMap[date] = order.total / 100);
-    }, ordersSalesMap);
+    const total = await orderRepo
+      .createQueryBuilder("order")
+      .select(
+        `SUM(order_items.unit_price * order_items.fulfilled_quantity) as value`
+      )
+      .innerJoin(
+        "order.items",
+        "order_items",
+        "order_items.order_id = order.id"
+      )
+      .where({
+        canceled_at: null,
+        payment_status: PaymentStatus.CAPTURED,
+        status: OrderStatus.COMPLETED,
+      })
+      .getRawOne();
 
-    const orderSales = Object.entries(ordersSalesMap).map((entry) => ({
-      date: entry[0],
-      value: entry[1],
-    }));
-
-    return orderSales;
+    const metrics = { total: getNumericValue(total.value) };
+    const result = { ...transformTimeSeries(ordersCount), metrics, period };
+    return result;
   }
 
   // New Products Added By Period
-  async fetchProductsStats(range: {
-    startDate: Date;
-    endDate: Date;
-  }): Promise<any> {
+  async fetchProductsStats(
+    range: {
+      startDate: Date;
+      endDate: Date;
+    },
+    period: PeriodType
+  ): Promise<any> {
     const productRepo = this.manager_.getCustomRepository(
       this.productRepository_
     );
+    const groupBy_ = `date_trunc('${period}', product.created_at)`;
 
-    const productCount = productRepo
+    const productCount = await productRepo
       .createQueryBuilder("product")
-      .select("DATE(product.created_at)")
-      .addSelect("COUNT(product.id) as count")
-      .groupBy("DATE(product.created_at)")
+      .select(`${groupBy_} as timestamp`)
+      .addSelect("COUNT(product.id) as value")
+      .addSelect("(select COUNT(*) from product) as total")
+      .groupBy(`${groupBy_}`)
       .where({
-        created_at: Between(range.startDate, range.endDate),
+        created_at: BetweenDate(
+          range.startDate,
+          range.endDate,
+          EDateType.Datetime
+        ),
         status: "published",
+        deleted_at: null,
       })
       .getRawMany();
 
-    return productCount;
+    const metrics = { total: productCount.length ? productCount[0].total : 0 };
+    const result = { ...transformTimeSeries(productCount), metrics, period };
+    return result;
   }
 
-  // New Customer signed up Period
-  async fetchCustomerStats(range: {
-    startDate: Date;
-    endDate: Date;
-  }): Promise<any> {
+  // new Customer signed up
+  async fetchCustomerStats(
+    range: {
+      startDate: Date;
+      endDate: Date;
+    },
+    period: PeriodType
+  ): Promise<any> {
     const customerRepo = this.manager_.getCustomRepository(
       this.customerRepository_
     );
+    const groupBy_ = `date_trunc('${period}', customer.created_at)`;
 
-    const customerCount = customerRepo
+    const customerCount = await customerRepo
       .createQueryBuilder("customer")
-      .select("DATE(customer.created_at)")
-      .addSelect("COUNT(customer.id) as count")
-      .groupBy("DATE(customer.created_at)")
+      .select(`${groupBy_} as timestamp`)
+      .addSelect("COUNT(customer.id) as value")
+      .addSelect("(select COUNT(*) from customer) as total")
+      .groupBy(groupBy_)
       .where({
-        created_at: Between(range.startDate, range.endDate),
+        created_at: BetweenDate(
+          range.startDate,
+          range.endDate,
+          EDateType.Datetime
+        ),
       })
       .getRawMany();
 
-    return customerCount;
+    const metrics = {
+      total: customerCount.length ? customerCount[0].total : 0,
+    };
+    const result = { ...transformTimeSeries(customerCount), metrics, period };
+    return result;
   }
 }
 

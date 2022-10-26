@@ -302,7 +302,7 @@
     winston "^3.3.3"
     yargs "^15.3.1"
 
-"@medusajs/medusa@latest":
+"@medusajs/medusa@^1.3.7":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@medusajs/medusa/-/medusa-1.5.0.tgz#081f9181a68b3a1d46093786e0ece762a00fcfaa"
   integrity sha512-5CoXqXZJuPUxD9bE7k7iG0N0mYao2DcOnGF1BpE3Pq1ClUI66vet523axvhBCxdRmc1VTslqVrosGxASBgimrA==
@@ -2723,7 +2723,7 @@ medusa-core-utils@^1.1.31, medusa-core-utils@^1.1.32:
     joi "^17.3.0"
     joi-objectid "^3.0.1"
 
-medusa-interfaces@latest:
+medusa-interfaces@^1.3.3:
   version "1.3.3"
   resolved "https://registry.yarnpkg.com/medusa-interfaces/-/medusa-interfaces-1.3.3.tgz#85745ea768fcbb093d3d5d3dee987fcdf996cb45"
   integrity sha512-e2ZkKtBppBVZYu09y479b5JgkNhzzDLuOHPxVXN2CVK9vUCYrzfEPMXd6B21CTchrhD07MCtR17l4OElRvPtSw==
@@ -3436,6 +3436,11 @@ postgres-interval@^1.1.0:
   integrity sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==
   dependencies:
     xtend "^4.0.0"
+
+prettier@^2.7.1:
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.7.1.tgz#e235806850d057f97bb08368a4f7d899f7760c64"
+  integrity sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==
 
 process-nextick-args@~2.0.0:
   version "2.0.1"
@@ -4166,7 +4171,7 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
 
-typeorm@^0.2.41:
+typeorm@^0.2.36:
   version "0.2.45"
   resolved "https://registry.yarnpkg.com/typeorm/-/typeorm-0.2.45.tgz#e5bbb3af822dc4646bad96cfa48cd22fa4687cea"
   integrity sha512-c0rCO8VMJ3ER7JQ73xfk0zDnVv0WDjpsP6Q1m6CVKul7DB9iVdWLRjPzc8v2eaeBuomsbZ2+gTaYr8k1gm3bYA==
